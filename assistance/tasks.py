@@ -10,10 +10,15 @@ class InsuranceAPIError(Exception):
     """Sigorta API'si hatası"""
     pass
 
-
-@shared_task(bind=True, max_retries=3)
+# ref: https://docs.celeryq.dev/en/v5.3.1/userguide/tasks.html#automatic-retry-for-known-exceptions
+@shared_task(
+    bind=True,
+    autoretry_for=(InsuranceAPIError,),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5
+)
 def notify_insurance_company_task(self, request_id):
-    """TODO: Retry mekanizması ekle"""
     logger.info(f"Sigorta bildirimi yapılıyor: Request ID {request_id}")
     
     # Mock API call

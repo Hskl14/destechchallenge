@@ -1,1 +1,58 @@
 # TODO: Docker Compose yapılandırmasını oluşturun
+
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: turassist_db
+    environment:
+      POSTGRES_DB: turassist
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: turassist_redis
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    container_name: turassist_web
+    command: python manage.py migrate && python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DB_NAME: turassist
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+
+  worker:
+    build: .
+    container_name: turassist_worker
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+    environment:
+      DB_NAME: turassist
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
